@@ -3,15 +3,39 @@ import pandas as pd
 from streamlit_gsheets import GSheetsConnection
 
 st.set_page_config(page_title="Gestion du matériel - AEP COLAS", layout="wide")
-st.title("Gestion du matériel - AEP COLAS")
-
-# Initialisation de la connexion Google Sheets
-conn = st.connection("gsheets", type=GSheetsConnection)
 
 
-# ==========================================
+# GESTION DE L'ACCES 
+
+def verifier_mot_de_passe():
+    """Vérifie le mot de passe stocké de manière sécurisée dans les Secrets."""
+    if "authentifie" not in st.session_state:
+        st.session_state.authentifie = False
+
+    if not st.session_state.authentifie:
+        st.title("🔒 Accès restreint - AEP COLAS")
+        st.markdown("Veuillez saisir le mot de passe d'équipe pour accéder à la plateforme.")
+        
+        with st.form("form_connexion"):
+            mdp_saisi = st.text_input("Mot de passe :", type="password")
+            btn_connexion = st.form_submit_button("Se connecter")
+            
+            if btn_connexion:
+                # Vérifie la valeur stockée dans le coffre-fort Streamlit Secrets
+                if mdp_saisi == st.secrets["MOT_DE_PASSE"]:
+                    st.session_state.authentifie = True
+                    st.rerun()
+                else:
+                    st.error("Mot de passe incorrect. Veuillez réessayer.")
+                    
+        st.stop()  # Bloque l'exécution tant que l'utilisateur n'est pas identifié
+
+# Verrouillage de l'accès
+verifier_mot_de_passe()
+
+
 # FONCTIONS DE LECTURE & ÉCRITURE
-# ==========================================
+
 
 def charger_donnees():
     try:
@@ -52,17 +76,17 @@ def synchroniser_outils():
     conn.update(worksheet="outils", data=st.session_state.outils)
 
 
-# ==========================================
+
 # BARRE LATÉRALE : ADMINISTRATION
-# ==========================================
+
 st.sidebar.header("Paramètres")
 
-# Bouton de synchronisation manuelle
+# Bouton synchronisation manuelle
 if st.sidebar.button("🔄 Rafraîchir les données"):
     st.session_state.equipes, st.session_state.outils = charger_donnees()
     st.rerun()
 
-# --- Formulaire 1 : Ajouter un outil ---
+# F1 : Ajouter un outil 
 st.sidebar.subheader("➕ Ajouter un outil")
 with st.sidebar.form("ajouter_outil_form", clear_on_submit=True):
     nom_nouvel_outil = st.text_input("Nom de l'outil")
@@ -90,7 +114,7 @@ with st.sidebar.form("ajouter_outil_form", clear_on_submit=True):
         else:
             st.sidebar.warning("Veuillez saisir un nom d'outil.")
 
-# --- Formulaire 2 : Supprimer un outil ---
+# F2 : Supprimer un outil 
 st.sidebar.subheader("🗑️ Supprimer un outil")
 if not st.session_state.outils.empty:
     with st.sidebar.form("supprimer_outil_form"):
@@ -103,7 +127,7 @@ if not st.session_state.outils.empty:
             st.sidebar.success(f"Outil '{outil_a_supprimer}' supprimé !")
             st.rerun()
 
-# --- Formulaire 3 : Ajouter une personne ---
+#F3: Ajouter une personne
 st.sidebar.subheader("👤 Ajouter une personne")
 with st.sidebar.form("ajouter_equipe_form", clear_on_submit=True):
     nom_nouvelle_equipe = st.text_input("Nom du responsable")
@@ -121,7 +145,7 @@ with st.sidebar.form("ajouter_equipe_form", clear_on_submit=True):
         else:
             st.sidebar.warning("Veuillez saisir un nom.")
 
-# --- Formulaire 4 : Supprimer une personne ---
+#F4 : Supprimer une personne
 st.sidebar.subheader("❌ Supprimer une personne")
 personnes_supprimables = [p for p in st.session_state.equipes if p != "Stock / Dépot"]
 
@@ -141,9 +165,8 @@ if personnes_supprimables:
             st.sidebar.success(f"'{personne_a_supprimer}' retiré(e). Ses outils ont été réaffectés.")
             st.rerun()
 
-# ==========================================
-# PAGE PRINCIPALE : TABLEAU D'AFFICHAGE
-# ==========================================
+
+# PAGE PRINCIPALE TABLEAU D'AFFICHAGE
 
 st.session_state.outils["Commentaire"] = st.session_state.outils["Commentaire"].fillna("")
 st.session_state.outils["Prêté_à"] = st.session_state.outils["Prêté_à"].fillna("")
@@ -181,9 +204,9 @@ st.subheader("📋 État du parc d'outils")
 colonnes_finales = ["Outil", "Affectation", "État", "Commentaire"]
 st.dataframe(vue_a_afficher[colonnes_finales], use_container_width=True)
 
-# ==========================================
-# FORMULAIRE DE MODIFICATION / TRANSFERT
-# ==========================================
+
+# F DE MODIFICATION / TRANSFERT
+
 st.subheader("🔄 Modifier l'affectation, prêt ou état")
 
 if not st.session_state.outils.empty:
