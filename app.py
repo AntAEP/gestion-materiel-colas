@@ -4,8 +4,9 @@ from streamlit_gsheets import GSheetsConnection
 
 st.set_page_config(page_title="Gestion du matériel - AEP COLAS", layout="wide")
 
+# 1. Initialisation de la connexion tout en haut
+conn = st.connection("gsheets", type=GSheetsConnection)
 
-# GESTION DE L'ACCES 
 
 def verifier_mot_de_passe():
     """Vérifie le mot de passe stocké de manière sécurisée dans les Secrets."""
@@ -21,18 +22,16 @@ def verifier_mot_de_passe():
             btn_connexion = st.form_submit_button("Se connecter")
             
             if btn_connexion:
-                # Vérifie la valeur stockée dans le coffre-fort Streamlit Secrets
                 if mdp_saisi == st.secrets["MOT_DE_PASSE"]:
                     st.session_state.authentifie = True
                     st.rerun()
                 else:
                     st.error("Mot de passe incorrect. Veuillez réessayer.")
                     
-        st.stop()  # Bloque l'exécution tant que l'utilisateur n'est pas identifié
+        st.stop()
 
 # Verrouillage de l'accès
 verifier_mot_de_passe()
-
 
 # FONCTIONS DE LECTURE & ÉCRITURE
 
